@@ -1,2 +1,1 @@
-autoforge
-gradio
+autoforge==1.7.1

@@ -1,3 +1,5 @@
+import uuid
+
 import gradio as gr
 import pandas as pd
 import os
@@ -550,7 +552,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             gr.Error("Input Image is required! Please upload an image.")
             return create_empty_error_outputs("Error: Input Image is required!")
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + str(uuid.uuid4())
         run_output_dir_val = os.path.join(GRADIO_OUTPUT_BASE_DIR, f"run_{timestamp}")
         os.makedirs(run_output_dir_val, exist_ok=True)
         current_run_output_dir.value = run_output_dir_val
