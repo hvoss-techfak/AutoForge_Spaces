@@ -466,10 +466,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                         interactive=True,
                     )
                 with gr.Column(scale=2):
-                    gr.Markdown("### Autoforge Parameters")
+                    gr.Markdown("### Preview")
                     with gr.Accordion("Progress & Output", open=True):
                         final_image_preview = gr.Image(
-                            label="Final Model Preview",
+                            label="Model Preview",
                             type="filepath",
                             interactive=False,
                         )
@@ -480,7 +480,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     visible=False,
                 )
             with gr.Row():
-                with gr.Accordion("Adjust Parameters", open=False):
+                with gr.Accordion("Adjust Autoforge Parameters", open=False):
                     args_for_accordion = get_script_args_info(
                         exclude_args=["--input_image"]
                     )
