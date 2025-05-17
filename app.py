@@ -10,6 +10,10 @@ import sys
 from datetime import datetime
 import re
 from PIL import Image
+import os, logging
+import sentry_sdk
+from sentry_sdk import capture_exception
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 # --- Configuration ---
 #AUTFORGE_SCRIPT_PATH = "auto_forge.py"  # Make sure this points to your script
@@ -24,6 +28,19 @@ DISPLAY_COL_MAP = {
     " TD": "TD",
     " Color": "Color (Hex)",
 }
+
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN"),
+    traces_sample_rate=0.1,          # performance traces, optional
+    integrations=[
+        LoggingIntegration(
+            level=logging.INFO,      # capture warnings/info in breadcrumbs
+            event_level=logging.ERROR,
+        ),
+    ],
+    release=os.getenv("HF_SPACE_VERSION", "dev"),
+    environment="hf_space",
+)
 
 
 def ensure_required_cols(df, *, in_display_space):
@@ -426,6 +443,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                         visible=True,
                     )
                 except Exception as e:
+                    capture_exception(e)
                     gr.Error(f"Error saving CSV for download: {e}")
                     return None
 
@@ -578,6 +596,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         try:
             df_to_save.to_csv(temp_filament_csv, index=False)
         except Exception as e:
+            capture_exception(e)
             err_msg = f"Error saving temporary filament CSV: {e}"
             gr.Error(err_msg)
             return create_empty_error_outputs(err_msg)
@@ -613,6 +632,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
             command.extend(["--input_image", script_input_image_path])
         except Exception as e:
+            capture_exception(e)
             err_msg = f"Error handling input image: {e}"
             gr.Error(err_msg)
             return create_empty_error_outputs(err_msg)
