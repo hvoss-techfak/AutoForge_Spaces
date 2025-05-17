@@ -330,10 +330,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     with gr.Tabs():
         with gr.TabItem("Filament Management"):
             gr.Markdown(
-                'Manage your filament list. This list will be used by the Autoforge process.'
+                'Manage your filament list here. This list will be used by Autoforge during the optimization process.'
             )
             gr.Markdown(
-                'You can export your Hueforge filaments under "Filaments -> Export" in the Hueforge software. Please make sure to select "CSV" instead of "JSON" during the export dialog.'
+                'If you have Hueforge, you can export your filaments under "Filaments -> Export" in the Hueforge software. Please make sure to select "CSV" instead of "JSON" during the export dialog.'
             )
             gr.Markdown(
                 'To remove a filament simply right-click on any of the fields and select "Delete Row"'
@@ -355,7 +355,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 interactive=True,
                 label="Filaments",
             )
-            gr.Markdown("### Add New Filament")
+            gr.Markdown("## Add New Filament")
             with gr.Row():
                 new_brand = gr.Textbox(label="Brand")
                 new_name = gr.Textbox(label="Name")
