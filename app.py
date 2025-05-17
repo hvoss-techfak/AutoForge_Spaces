@@ -2,7 +2,7 @@ import uuid
 import os
 import logging
 import sentry_sdk
-from sentry_sdk import capture_exception
+from sentry_sdk import capture_exception, push_scope, capture_message
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -124,15 +124,6 @@ def rgba_to_hex(col: str) -> str:
     r, g, b = (int(float(x)) for x in m.groups()[:3])
     return "#{:02X}{:02X}{:02X}".format(r, g, b)
 
-def sentry_wrap(fn):
-    def _inner(*args, **kwargs):
-        try:
-            return fn(*args, **kwargs)
-        except Exception as exc:
-            capture_exception(exc)      # send to Sentry
-            flush(timeout=2)            # make sure the event is really sent
-            raise                       # let Gradio show its own error dialog
-    return _inner
 
 # --- Helper Functions ---
 def get_script_args_info(exclude_args=None):
@@ -277,8 +268,6 @@ def get_script_args_info(exclude_args=None):
     ]
     return [arg for arg in all_args_info if arg["name"] not in exclude_args]
 
-def boom():
-    raise RuntimeError("Sentry test – should appear in dashboard")
 
 # Initial filament data
 initial_filament_data = {
@@ -549,8 +538,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     visible=False,
                 )
             with gr.Row():
-                test_btn = gr.Button("Trigger Sentry test error")
-                test_btn.click(boom)
                 with gr.Accordion("Adjust Autoforge Parameters", open=False):
                     args_for_accordion = get_script_args_info(
                         exclude_args=["--input_image"]
@@ -708,8 +695,14 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         )
 
         yield create_empty_error_outputs(log_output)  # clear UI and show header
-        sentry_sdk.capture_message(
-            f"Autoforge process started with command: {' '.join(command)}"
+        cmd_str = " ".join(command)
+        sentry_sdk.capture_event(
+            {
+                "message": "Autoforge process started",
+                "level": "info",
+                "fingerprint": ["autoforge-process-start"],  # every start groups here
+                "extra": {"command": cmd_str},  # still searchable
+            }
         )
         process = subprocess.Popen(
             command,
@@ -796,6 +789,15 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             "\nAutoforge process completed successfully!"
             if return_code == 0
             else f"\nAutoforge process failed with exit code {return_code}."
+        )
+        log_str = " ".join(log_output)
+        sentry_sdk.capture_event(
+            {
+                "message": "Autoforge process finished",
+                "level": "info",
+                "fingerprint": ["autoforge-process-finished"],  # every start groups here
+                "extra": {"log": log_str},  # still searchable
+            }
         )
 
         # make sure we show the final preview (if any)
