@@ -345,7 +345,7 @@ def create_empty_error_outputs(log_message=""):
 
 # --- Gradio UI Definition ---
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# Autoforge Web UI")
+    gr.Markdown("# [Autoforge](https://github.com/hvoss-techfak/AutoForge) Web UI")
 
     filament_df_state = gr.State(initial_df.copy())
     current_run_output_dir = gr.State(None)
@@ -566,7 +566,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 'If you want to limit the number of colors or color swaps you can find the option under the "Autoforge Parameters" as "pruning_max_colors" and "pruning_max_swaps"'
             )
             gr.Markdown(
-                'Please note that huggingface enforces a maximum time of one minute. Depending on your configuration (especially iteration count) it is possible to exceed this time limit. In that case you will see a "GPU ABORTED" error.'
+                'Please note that huggingface enforces a maximum time of one minute per execution. Depending on your configuration (especially iteration count) it is possible to exceed this time limit. In that case you will see a "GPU Task aborted" error.'
+                'If you need more time, take a look at the [Autoforge Github Page](https://github.com/hvoss-techfak/AutoForge) to see how you can run the program locally.'
             )
 
             with gr.Row():
