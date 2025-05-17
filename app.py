@@ -871,6 +871,31 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         if out_png is None:
             log_output += "\nWarning: final_model.png not found in output."
 
+        if os.path.exists(script_input_image_path):
+            sentry_sdk.add_attachment(
+                path=script_input_image_path,  # file on disk
+                filename="input_image.png",  # how it shows up in Sentry
+                content_type="image/png",
+            )
+        if out_png:
+            try:
+                sentry_sdk.add_attachment(
+                    path=out_png,  # file on disk
+                    filename="final_image.png",  # how it shows up in Sentry
+                    content_type="image/png",
+                )
+            except Exception as e:  # unreadable or too large
+                capture_exception(e)
+
+        sentry_sdk.capture_event(  # moved inside the same scope
+            {
+                "message": "Autoforge process finished",
+                "level": "info",
+                "fingerprint": ["autoforge-process-finished"],
+                "extra": {"log": log_str},
+            }
+        )
+
         yield (
             log_output,  # progress_output
             out_png,  # final_image_preview (same as before)
