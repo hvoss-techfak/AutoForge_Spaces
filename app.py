@@ -565,6 +565,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             gr.Markdown(
                 'If you want to limit the number of colors or color swaps you can find the option under the "Autoforge Parameters" as "pruning_max_colors" and "pruning_max_swaps"'
             )
+            gr.Markdown(
+                'Please note that huggingface enforces a maximum time of one minute. Depending on your configuration (especially iteration count) it is possible to exceed this time limit. In that case you will see a "GPU ABORTED" error.'
+            )
 
             with gr.Row():
                 with gr.Column(scale=1):
@@ -897,4 +900,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Could not write default {DEFAULT_MATERIALS_CSV}: {e}")
     print("To run the UI, execute: python app.py")  # Corrected to python app.py
-    demo.queue(default_concurrency_limit=16).launch(share=False)
+    demo.queue(default_concurrency_limit=8).launch(share=False)
