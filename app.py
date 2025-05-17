@@ -3,6 +3,7 @@ import os, logging
 import sentry_sdk
 from sentry_sdk import capture_exception
 from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 dsn = os.getenv("SENTRY_DSN")
 if not dsn:
@@ -12,6 +13,13 @@ else:
         dsn=dsn,
         traces_sample_rate=0.1,
         integrations=[
+            StarletteIntegration(
+                failed_request_status_codes={
+                    400,
+                    422,
+                    *range(500, 599),
+                },  # also log 4xx from Gradio
+            ),
             LoggingIntegration(
                 level=logging.INFO,  # breadcrumb level
                 event_level=logging.ERROR,
@@ -244,6 +252,8 @@ def get_script_args_info(exclude_args=None):
     ]
     return [arg for arg in all_args_info if arg["name"] not in exclude_args]
 
+def boom():
+    raise RuntimeError("Sentry test – should appear in dashboard")
 
 # Initial filament data
 initial_filament_data = {
@@ -514,6 +524,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     visible=False,
                 )
             with gr.Row():
+                test_btn = gr.Button("Trigger Sentry test error")
+                test_btn.click(boom)
                 with gr.Accordion("Adjust Autoforge Parameters", open=False):
                     args_for_accordion = get_script_args_info(
                         exclude_args=["--input_image"]

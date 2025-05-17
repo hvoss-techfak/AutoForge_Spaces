@@ -1,2 +1,3 @@
 autoforge==1.7.2
 sentry-sdk[huggingface_hub]
+sentry-sdk[fastapi]
