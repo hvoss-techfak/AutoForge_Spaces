@@ -256,7 +256,7 @@ def create_empty_error_outputs(log_message=""):
 
 # --- Gradio UI Definition ---
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# Autoforge Web UI")
+    gr.Markdown("# Autoforge Web UI - PLEASE BEWARE! WITHOUT A GPU THIS SPACE TAKES 30-50 MINUTES RIGHT NOW!")
 
     filament_df_state = gr.State(initial_df.copy())
     current_run_output_dir = gr.State(None)
