@@ -492,10 +492,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             with gr.Row():
                 with gr.Column(scale=1):
                     gr.Markdown("### Input Image (Required)")
-                    input_image_component = gr.Image(
-                        type="filepath",
-                        image_mode="RGBA",
-                        format="png",
+                    input_image_component = gr.Image(         # keep transparency alive
+                        type="pil",            # <- no temporary JPEG cache
+                        image_mode="RGBA",     # tells Gradio to expect alpha
                         label="Upload Image",
                         sources=["upload"],
                         interactive=True,
@@ -578,12 +577,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
     # --- Backend Function for Running the Script ---
     def execute_autoforge_script(
-        current_filaments_df_state_val, input_image_path, *accordion_param_values
+        current_filaments_df_state_val, input_image, *accordion_param_values
     ):
         # 0. Validate Inputs
-        if (
-            not input_image_path
-        ):  # Covers None and empty string from gr.Image(type="filepath")
+        if input_image is None:
             gr.Error("Input Image is required! Please upload an image.")
             capture_exception(Exception("Input Image is required!"))
             return create_empty_error_outputs("Error: Input Image is required!")
@@ -632,28 +629,12 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         command.extend(["--output_folder", run_output_dir_val])
         command.extend(["--disable_visualization_for_gradio","1"])
 
-        base_filename = os.path.basename(input_image_path)
-        script_input_image_path = os.path.join(run_output_dir_val, base_filename)
         try:
-            img = Image.open(input_image_path)
             # decide where to store the image we pass to Autoforge
-            base_no_ext, _ = os.path.splitext(os.path.basename(input_image_path))
             script_input_image_path = os.path.join(
-                run_output_dir_val, f"{base_no_ext}.png"
+                run_output_dir_val, "input_image.png"
             )
-
-            if img.mode in ("RGBA", "LA") or (
-                img.mode == "P" and "transparency" in img.info
-            ):
-                # the uploaded file has an alpha channel – save it as PNG
-                img.save(script_input_image_path, format="PNG")
-            else:
-                # no alpha present – just copy the file in whatever format it was
-                script_input_image_path = os.path.join(
-                    run_output_dir_val, os.path.basename(input_image_path)
-                )
-                shutil.copy(input_image_path, script_input_image_path)
-
+            input_image.save(script_input_image_path, format="PNG")
             command.extend(["--input_image", script_input_image_path])
         except Exception as e:
             capture_exception(e)
