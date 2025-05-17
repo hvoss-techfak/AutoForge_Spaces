@@ -6,6 +6,7 @@ from sentry_sdk import capture_exception, push_scope, capture_message
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
+import spaces
 dsn = os.getenv("SENTRY_DSN")
 if not dsn:
     print("WARNING: SENTRY_DSN not set – Sentry disabled")
@@ -600,6 +601,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             )
 
     # --- Backend Function for Running the Script ---
+    @spaces.GPU
     def execute_autoforge_script(
         current_filaments_df_state_val, input_image, *accordion_param_values
     ):
