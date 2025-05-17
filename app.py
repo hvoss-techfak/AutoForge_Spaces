@@ -3,7 +3,7 @@ import os, logging
 import sentry_sdk
 from sentry_sdk import capture_exception
 from sentry_sdk.integrations.logging import LoggingIntegration
-
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 dsn = os.getenv("SENTRY_DSN")
 if not dsn:
     print("WARNING: SENTRY_DSN not set – Sentry disabled")
@@ -13,9 +13,10 @@ else:
         traces_sample_rate=0.1,
         integrations=[
             LoggingIntegration(
-                level=logging.INFO,      # breadcrumb level
+                level=logging.INFO,  # breadcrumb level
                 event_level=logging.ERROR,
             ),
+            FastApiIntegration(),
         ],
         release=os.getenv("HF_SPACE_VERSION", "dev"),
         environment="hf_space",
