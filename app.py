@@ -1,5 +1,6 @@
 import uuid
-import os, logging
+import os
+import logging
 import sentry_sdk
 from sentry_sdk import capture_exception
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -32,6 +33,7 @@ else:
 
 sentry_sdk.capture_message("🎉 Sentry is wired up!")
 
+
 import gradio as gr
 import pandas as pd
 import os
@@ -41,7 +43,6 @@ import shutil
 import sys
 from datetime import datetime
 import re
-from PIL import Image
 
 # --- Configuration ---
 #AUTFORGE_SCRIPT_PATH = "auto_forge.py"  # Make sure this points to your script
@@ -56,8 +57,6 @@ DISPLAY_COL_MAP = {
     " TD": "TD",
     " Color": "Color (Hex)",
 }
-
-
 
 
 def ensure_required_cols(df, *, in_display_space):
@@ -119,7 +118,7 @@ def get_script_args_info(exclude_args=None):
         {
             "name": "--iterations",
             "type": "number",
-            "default": 2000,
+            "default": 1000,
             "help": "Number of optimization iterations",
         },
         {
