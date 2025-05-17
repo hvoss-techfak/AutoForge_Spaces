@@ -1,6 +1,8 @@
 import uuid
 import os
 import logging
+import zipfile
+
 import sentry_sdk
 from sentry_sdk import capture_exception, push_scope, capture_message
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -125,6 +127,19 @@ def rgba_to_hex(col: str) -> str:
     r, g, b = (int(float(x)) for x in m.groups()[:3])
     return "#{:02X}{:02X}{:02X}".format(r, g, b)
 
+def zip_dir_no_compress(src_dir: str, dest_zip: str) -> str:
+    """Create *dest_zip* from *src_dir* using no compression (ZIP_STORED)."""
+    t0 = time.time()
+    with zipfile.ZipFile(dest_zip, "w",
+                         compression=zipfile.ZIP_STORED,
+                         allowZip64=True) as zf:
+        for root, _, files in os.walk(src_dir):
+            for fname in files:
+                fpath = os.path.join(root, fname)
+                # keep folder structure inside the archive but drop the leading path
+                zf.write(fpath, os.path.relpath(fpath, src_dir))
+    print(f"Zipping finished in {time.time() - t0:.1f}s")
+    return dest_zip
 
 # --- Helper Functions ---
 def get_script_args_info(exclude_args=None):
@@ -810,7 +825,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         zip_base = os.path.join(
             run_output_dir_val, "autoforge_results"
         )  # ### ZIP PATCH
-        zip_path = shutil.make_archive(zip_base, "zip", run_output_dir_val)
+        zip_path = zip_dir_no_compress(
+            run_output_dir_val,
+            os.path.join(run_output_dir_val, "autoforge_results.zip"),
+        )
 
         # 4. Prepare output file paths
         png_path = os.path.join(run_output_dir_val, "final_model.png")
