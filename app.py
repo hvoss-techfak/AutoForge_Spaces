@@ -310,7 +310,7 @@ if os.path.exists(DEFAULT_MATERIALS_CSV):
 else:
     initial_df.to_csv(DEFAULT_MATERIALS_CSV, index=False)
 
-@spaces.GPU()                       # GPU reserved only for this call
+@spaces.GPU(duration=90)                       # GPU reserved only for this call
 def run_autoforge_process(cmd, log_path):
     """
     Launch the external `autoforge` CLI.
