@@ -151,7 +151,7 @@ def get_script_args_info(exclude_args=None):
         {
             "name": "--iterations",
             "type": "number",
-            "default": 1000,
+            "default": 2000,
             "help": "Number of optimization iterations",
         },
         {
@@ -822,9 +822,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             run_output_dir_val, "final_model.png"
         )
 
-        zip_base = os.path.join(
-            run_output_dir_val, "autoforge_results"
-        )  # ### ZIP PATCH
         zip_path = zip_dir_no_compress(
             run_output_dir_val,
             os.path.join(run_output_dir_val, "autoforge_results.zip"),
@@ -837,9 +834,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         hfp_path = os.path.join(run_output_dir_val, "project_file.hfp")
 
         out_png = png_path if os.path.exists(png_path) else None
-        out_stl = stl_path if os.path.exists(stl_path) else None
-        out_txt = txt_path if os.path.exists(txt_path) else None
-        out_hfp = hfp_path if os.path.exists(hfp_path) else None
 
         if out_png is None:
             log_output += "\nWarning: final_model.png not found in output."
