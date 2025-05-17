@@ -310,6 +310,28 @@ if os.path.exists(DEFAULT_MATERIALS_CSV):
 else:
     initial_df.to_csv(DEFAULT_MATERIALS_CSV, index=False)
 
+@spaces.GPU()
+def run_autoforge_process(cmd, q):
+    """
+    Start the Autoforge CLI, stream its stdout to Queue *q*,
+    then drop a sentinel ('__RC__', return_code) at the end.
+    """
+    import subprocess, os, sys
+
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        universal_newlines=True,
+    )
+
+    for line in proc.stdout:        # line-by-line streaming
+        q.put(line)
+    proc.wait()
+    q.put(("__RC__", proc.returncode))
+
 
 # Helper for creating an empty 10-tuple for error returns
 def create_empty_error_outputs(log_message=""):
@@ -625,14 +647,14 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             )
 
             with gr.Row():
-                download_zip = gr.File(  # was visible=True
-                    label="Download all results (.zip)",
+                download_results = gr.File(
+                    label="Download results",
+                    file_count="multiple",
                     interactive=True,
                     visible=False,
                 )
 
     # --- Backend Function for Running the Script ---
-    @spaces.GPU(duration=120)
     def execute_autoforge_script(
         current_filaments_df_state_val, input_image, *accordion_param_values
     ):
@@ -737,40 +759,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 "extra": {"command": cmd_str},  # still searchable
             }
         )
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-            universal_newlines=True,
-        )
-
-        # ---- helper: read stdout in a background thread -------------------
-        from threading import Thread
-        from queue import Queue, Empty
-
-        def _enqueue(pipe, q):
-            """Forward stdout/stderr to a queue, emitting on both '\n' and '\r'."""
-            buf = ""
-            while True:
-                ch = pipe.read(1)  # read a single character
-                if ch == "":  # EOF
-                    if buf:
-                        q.put(buf)  # flush whatever is left
-                    break
-                buf += ch
-                if ch in ("\n", "\r"):  # tqdm uses '\r'
-                    q.put(buf)
-                    buf = ""
-            pipe.close()
-
-        q_out = Queue()
-        Thread(target=_enqueue, args=(process.stdout, q_out), daemon=True).start()
-        Thread(target=_enqueue, args=(process.stderr, q_out), daemon=True).start()
-
-        preview_mtime = 0
-        last_push = 0
 
         def _maybe_new_preview():
             """
@@ -792,28 +780,45 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
             return src  # → refresh image
 
-        # ---- main loop: poll every 0.5 s ----------------------------------
-        while process.poll() is None or not q_out.empty():
-            # drain whatever is waiting in stdout
+        # ---- run Autoforge on the GPU in a helper thread ------------------
+        from threading import Thread
+        from queue import Queue, Empty
+
+        q_out = Queue()
+        worker = Thread(
+            target=run_autoforge_process,
+            args=(command, q_out),
+            daemon=True,
+        )
+        worker.start()
+
+        preview_mtime = 0
+        last_push = 0
+        return_code = None
+
+        while worker.is_alive() or not q_out.empty():
             try:
-                while True:
-                    log_output += q_out.get_nowait()
+                while True:  # drain whatever is ready
+                    msg = q_out.get_nowait()
+                    if isinstance(msg, tuple):  # ('__RC__', code) sentinel
+                        return_code = msg[1]
+                    else:
+                        log_output += msg
             except Empty:
                 pass
 
             now = time.time()
-            if now - last_push >= 1.0:  # 500 ms tick
+            if now - last_push >= 1.0:  # 1-second UI tick
                 current_preview = _maybe_new_preview()
                 yield (
                     log_output,
                     current_preview,
-                    gr.update(),  # ### ZIP PATCH: placeholder for zip widget
+                    gr.update(),  # placeholder for download widget
                 )
                 last_push = now
 
             time.sleep(0.05)  # keep CPU load low
 
-        return_code = process.wait()
         if return_code != 0:
             err = RuntimeError(f"Autoforge exited with code {return_code} \n {log_output}")
             capture_exception(err)  # send to Sentry
@@ -833,22 +838,17 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             }
         )
 
-        # make sure we show the final preview (if any)
-        final_preview = _maybe_new_preview() or os.path.join(
-            run_output_dir_val, "final_model.png"
-        )
-
-        zip_path = zip_dir_no_compress(
-            run_output_dir_val,
-            os.path.join(run_output_dir_val, "autoforge_results.zip"),
-        )
-
-        # 4. Prepare output file paths
+        files_to_offer = [
+            p
+            for p in [
+                os.path.join(run_output_dir_val, "final_model.png"),
+                os.path.join(run_output_dir_val, "final_model.stl"),
+                os.path.join(run_output_dir_val, "swap_instructions.txt"),
+                os.path.join(run_output_dir_val, "project_file.hfp"),
+            ]
+            if os.path.exists(p)
+        ]
         png_path = os.path.join(run_output_dir_val, "final_model.png")
-        stl_path = os.path.join(run_output_dir_val, "final_model.stl")
-        txt_path = os.path.join(run_output_dir_val, "swap_instructions.txt")
-        hfp_path = os.path.join(run_output_dir_val, "project_file.hfp")
-
         out_png = png_path if os.path.exists(png_path) else None
 
         if out_png is None:
@@ -856,10 +856,12 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
         yield (
             log_output,  # progress_output
-            out_png,  # final_image_preview
-            gr.update(
-                value=zip_path, visible=True, interactive=True
-            ),  # ### ZIP PATCH: download_zip
+            out_png,  # final_image_preview (same as before)
+            gr.update(  # download_results
+                value=files_to_offer,
+                visible=True,
+                interactive=True,
+            ),
         )
 
     run_inputs = [filament_df_state, input_image_component] + [
@@ -868,7 +870,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     run_outputs = [
         progress_output,
         final_image_preview,
-        download_zip,  # ### ZIP PATCH: only three outputs now
+        download_results,  # ### ZIP PATCH: only three outputs now
     ]
 
     run_button.click(execute_autoforge_script, inputs=run_inputs, outputs=run_outputs)
