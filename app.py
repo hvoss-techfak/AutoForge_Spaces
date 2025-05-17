@@ -846,14 +846,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             else f"\nAutoforge process failed with exit code {return_code}."
         )
         log_str = " ".join(log_output)
-        sentry_sdk.capture_event(
-            {
-                "message": "Autoforge process finished",
-                "level": "info",
-                "fingerprint": ["autoforge-process-finished"],  # every start groups here
-                "extra": {"log": log_str},  # still searchable
-            }
-        )
 
         files_to_offer = [
             p
