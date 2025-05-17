@@ -4,18 +4,26 @@ import sentry_sdk
 from sentry_sdk import capture_exception
 from sentry_sdk.integrations.logging import LoggingIntegration
 
-sentry_sdk.init(
-    dsn=os.getenv("SENTRY_DSN"),
-    traces_sample_rate=0.1,          # performance traces, optional
-    integrations=[
-        LoggingIntegration(
-            level=logging.INFO,      # capture warnings/info in breadcrumbs
-            event_level=logging.ERROR,
-        ),
-    ],
-    release=os.getenv("HF_SPACE_VERSION", "dev"),
-    environment="hf_space",
-)
+dsn = os.getenv("SENTRY_DSN")
+if not dsn:
+    print("WARNING: SENTRY_DSN not set – Sentry disabled")
+else:
+    sentry_sdk.init(
+        dsn=dsn,
+        traces_sample_rate=0.1,
+        integrations=[
+            LoggingIntegration(
+                level=logging.INFO,      # breadcrumb level
+                event_level=logging.ERROR,
+            ),
+        ],
+        release=os.getenv("HF_SPACE_VERSION", "dev"),
+        environment="hf_space",
+    )
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+sentry_sdk.capture_message("🎉 Sentry is wired up!")
 
 import gradio as gr
 import pandas as pd
@@ -747,6 +755,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             time.sleep(0.05)  # keep CPU load low
 
         return_code = process.wait()
+        if return_code != 0:
+            err = RuntimeError(f"Autoforge exited with code {return_code}")
+            capture_exception(err)  # send to Sentry
+            raise err  # also fail the Gradio call
         log_output += (
             "\nAutoforge process completed successfully!"
             if return_code == 0
