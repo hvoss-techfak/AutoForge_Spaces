@@ -322,7 +322,7 @@ def create_empty_error_outputs(log_message=""):
 
 # --- Gradio UI Definition ---
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# Autoforge Web UI - PLEASE BEWARE! WITHOUT A GPU THIS SPACE TAKES 30-50 MINUTES RIGHT NOW!")
+    gr.Markdown("# Autoforge Web UI")
 
     filament_df_state = gr.State(initial_df.copy())
     current_run_output_dir = gr.State(None)
@@ -866,4 +866,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Could not write default {DEFAULT_MATERIALS_CSV}: {e}")
     print("To run the UI, execute: python app.py")  # Corrected to python app.py
-    demo.queue(default_concurrency_limit=2).launch(share=False)
+    demo.queue(default_concurrency_limit=16).launch(share=False)
