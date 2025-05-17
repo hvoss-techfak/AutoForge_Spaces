@@ -287,11 +287,11 @@ def get_script_args_info(exclude_args=None):
 
 # Initial filament data
 initial_filament_data = {
-    "Brand": ["Generic", "Generic", "Generic"],
-    " Name": ["PLA Black", "PLA Grey", "PLA White"],
-    " TD": [1.0, 1.0, 1.0],
-    " Color": ["#000000", "#808080", "#FFFFFF"],
-    " Owned": ["true", "true", "true"],  # ← add
+    "Brand": ["Generic", "Generic", "Generic","Generic","Generic","Generic",],
+    " Name": ["PLA Black", "PLA Grey", "PLA White","PLA Red","PLA Green","PLA Blue"],
+    " TD": [5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
+    " Color": ["#000000", "#808080", "#FFFFFF","#FF0000","#00FF00","#0000FF"],
+    " Owned": ["true", "true", "true", "true", "true", "true"],  # ← add
 }
 initial_df = pd.DataFrame(initial_filament_data)
 
@@ -560,13 +560,13 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             accordion_params_ordered_names = []
 
             gr.Markdown(
-                'Here you can upload an image, adjust the parameters and run the Autoforge process. The filaments from the "Filament Management" are automatically used. After the process completes you can download the results at the bottom of the page.'
+                'Here you can upload an image, adjust the parameters and run the Autoforge process. The filaments from the "Filament Management" Tab are automatically used. After the process completes you can download the results at the bottom of the page.'
             )
             gr.Markdown(
                 'If you want to limit the number of colors or color swaps you can find the option under the "Autoforge Parameters" as "pruning_max_colors" and "pruning_max_swaps"'
             )
             gr.Markdown(
-                'Please note that huggingface enforces a maximum time of one minute per execution. Depending on your configuration (especially iteration count) it is possible to exceed this time limit. In that case you will see a "GPU Task aborted" error.'
+                'Please note that huggingface enforces a maximum execution time of one minute. Depending on your configuration (especially iteration count) it is possible to exceed this time limit. In that case you will see a "GPU Task aborted" error.'
                 'If you need more time, take a look at the [Autoforge Github Page](https://github.com/hvoss-techfak/AutoForge) to see how you can run the program locally.'
             )
 

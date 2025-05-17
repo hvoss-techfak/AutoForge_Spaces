@@ -1,4 +1,7 @@
 Brand, Name, TD, Color, Owned
-Generic,PLA Black,1.0,#000000,true
-Generic,PLA Grey,1.0,#808080,true
-Generic,PLA White,1.0,#FFFFFF,true
+Generic,PLA Black,5.0,#000000,true
+Generic,PLA Grey,5.0,#808080,true
+Generic,PLA White,5.0,#FFFFFF,true
+Generic,PLA Red,5.0,#FF0000,true
+Generic,PLA Green,5.0,#00FF00,true
+Generic,PLA Blue,5.0,#0000FF,true
