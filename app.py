@@ -151,7 +151,7 @@ def get_script_args_info(exclude_args=None):
         {
             "name": "--iterations",
             "type": "number",
-            "default": 2000,
+            "default": 1000,
             "help": "Number of optimization iterations",
         },
         {
