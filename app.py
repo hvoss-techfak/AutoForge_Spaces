@@ -36,20 +36,19 @@ sentry_sdk.capture_message("🎉 Sentry is wired up!")
 import gradio, functools
 from sentry_sdk import capture_exception, flush
 
-orig_run_sync = gradio.utils.run_sync  # Gradio 4.x helper
+orig_call_fn = gradio.blocks.Blocks.call_function  # present in all 3.x & 4.x
 
-def sentry_run_sync(fn):
-    @functools.wraps(fn)
-    def _wrapped(*args, **kwargs):
-        try:
-            return fn(*args, **kwargs)
-        except Exception as exc:
-            capture_exception(exc)
-            flush(timeout=2)
-            raise
-    return _wrapped
+@functools.wraps(orig_call_fn)
+async def sentry_call_fn(self, *args, **kwargs):
+    try:
+        return await orig_call_fn(self, *args, **kwargs)
+    except Exception as exc:
+        capture_exception(exc)
+        flush(timeout=2)
+        raise
 
-gradio.utils.run_sync = sentry_run_sync  # global patch
+gradio.blocks.Blocks.call_function = sentry_call_fn
+
 
 
 import gradio as gr
