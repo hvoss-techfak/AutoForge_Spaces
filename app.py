@@ -750,6 +750,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             else:
                 command.extend([arg_name, str(arg_widget_val)])
 
+
         # 3. Run script
         log_output = (
             f"Starting Autoforge process at "
