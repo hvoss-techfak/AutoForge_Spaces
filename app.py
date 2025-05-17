@@ -1,4 +1,21 @@
 import uuid
+import os, logging
+import sentry_sdk
+from sentry_sdk import capture_exception
+from sentry_sdk.integrations.logging import LoggingIntegration
+
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN"),
+    traces_sample_rate=0.1,          # performance traces, optional
+    integrations=[
+        LoggingIntegration(
+            level=logging.INFO,      # capture warnings/info in breadcrumbs
+            event_level=logging.ERROR,
+        ),
+    ],
+    release=os.getenv("HF_SPACE_VERSION", "dev"),
+    environment="hf_space",
+)
 
 import gradio as gr
 import pandas as pd
@@ -10,10 +27,6 @@ import sys
 from datetime import datetime
 import re
 from PIL import Image
-import os, logging
-import sentry_sdk
-from sentry_sdk import capture_exception
-from sentry_sdk.integrations.logging import LoggingIntegration
 
 # --- Configuration ---
 #AUTFORGE_SCRIPT_PATH = "auto_forge.py"  # Make sure this points to your script
@@ -29,18 +42,7 @@ DISPLAY_COL_MAP = {
     " Color": "Color (Hex)",
 }
 
-sentry_sdk.init(
-    dsn=os.getenv("SENTRY_DSN"),
-    traces_sample_rate=0.1,          # performance traces, optional
-    integrations=[
-        LoggingIntegration(
-            level=logging.INFO,      # capture warnings/info in breadcrumbs
-            event_level=logging.ERROR,
-        ),
-    ],
-    release=os.getenv("HF_SPACE_VERSION", "dev"),
-    environment="hf_space",
-)
+
 
 
 def ensure_required_cols(df, *, in_display_space):
