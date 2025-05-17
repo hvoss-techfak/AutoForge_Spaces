@@ -310,27 +310,28 @@ if os.path.exists(DEFAULT_MATERIALS_CSV):
 else:
     initial_df.to_csv(DEFAULT_MATERIALS_CSV, index=False)
 
-@spaces.GPU()
-def run_autoforge_process(cmd, q):
+@spaces.GPU()                       # GPU reserved only for this call
+def run_autoforge_process(cmd, log_path):
     """
-    Start the Autoforge CLI, stream its stdout to Queue *q*,
-    then drop a sentinel ('__RC__', return_code) at the end.
+    Launch the external `autoforge` CLI.
+    All stdout/stderr lines are appended (line-buffered) to *log_path*.
+    Returns the CLI's exit-code.
     """
-    import subprocess, os, sys
+    import subprocess, io, os, sys
 
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        universal_newlines=True,
-    )
-
-    for line in proc.stdout:        # line-by-line streaming
-        q.put(line)
-    proc.wait()
-    q.put(("__RC__", proc.returncode))
+    with open(log_path, "w", buffering=1, encoding="utf-8") as log_f:  # line-buffered
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
+        )
+        for line in proc.stdout:           # live streaming to the file
+            log_f.write(line)
+        proc.wait()
+    return proc.returncode
 
 
 # Helper for creating an empty 10-tuple for error returns
@@ -750,15 +751,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         )
 
         yield create_empty_error_outputs(log_output)  # clear UI and show header
-        cmd_str = " ".join(command)
-        sentry_sdk.capture_event(
-            {
-                "message": "Autoforge process started",
-                "level": "info",
-                "fingerprint": ["autoforge-process-start"],  # every start groups here
-                "extra": {"command": cmd_str},  # still searchable
-            }
-        )
+
 
         def _maybe_new_preview():
             """
@@ -784,31 +777,47 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         from threading import Thread
         from queue import Queue, Empty
 
-        q_out = Queue()
-        worker = Thread(
-            target=run_autoforge_process,
-            args=(command, q_out),
-            daemon=True,
+        log_file = os.path.join(run_output_dir_val, "autoforge_live.log")
+
+        cmd_str = " ".join(command)
+        sentry_sdk.capture_event(
+            {
+                "message": "Autoforge process started",
+                "level": "info",
+                "fingerprint": ["autoforge-process-start"],  # every start groups here
+                "extra": {"command": cmd_str},  # still searchable
+            }
         )
+
+        # simple thread that just calls the GPU helper and stores the exit code
+        import threading
+
+        class Worker(threading.Thread):
+            def __init__(self, cmd, log_path):
+                super().__init__(daemon=True)
+                self.cmd, self.log_path = cmd, log_path
+                self.returncode = None
+
+            def run(self):
+                self.returncode = run_autoforge_process(self.cmd, self.log_path)
+
+        worker = Worker(command, log_file)
         worker.start()
 
         preview_mtime = 0
         last_push = 0
-        return_code = None
+        file_pos = 0  # how far we've read
 
-        while worker.is_alive() or not q_out.empty():
-            try:
-                while True:  # drain whatever is ready
-                    msg = q_out.get_nowait()
-                    if isinstance(msg, tuple):  # ('__RC__', code) sentinel
-                        return_code = msg[1]
-                    else:
-                        log_output += msg
-            except Empty:
-                pass
+        while worker.is_alive() or file_pos < os.path.getsize(log_file):
+            # read any new console text
+            with open(log_file, "r", encoding="utf-8") as lf:
+                lf.seek(file_pos)
+                new_txt = lf.read()
+                file_pos = lf.tell()
+                log_output += new_txt
 
             now = time.time()
-            if now - last_push >= 1.0:  # 1-second UI tick
+            if now - last_push >= 1.0:  # one-second UI tick
                 current_preview = _maybe_new_preview()
                 yield (
                     log_output,
@@ -817,7 +826,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 )
                 last_push = now
 
-            time.sleep(0.05)  # keep CPU load low
+            time.sleep(0.05)
+
+        worker.join()  # make sure it’s done
+        return_code = worker.returncode
 
         if return_code != 0:
             err = RuntimeError(f"Autoforge exited with code {return_code} \n {log_output}")
