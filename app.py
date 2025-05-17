@@ -481,6 +481,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     input_image_component = gr.Image(
                         type="filepath",
                         image_mode="RGBA",
+                        format="png",
                         label="Upload Image",
                         sources=["upload"],
                         interactive=True,
