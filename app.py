@@ -24,7 +24,6 @@ else:
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-sentry_sdk.capture_message("🎉 Sentry is wired up!")
 
 import gradio as gr
 import pandas as pd
@@ -386,6 +385,11 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                         gr.Error(
                             f"CSV must contain columns: {', '.join(expected_cols)}. Found: {loaded_script_df.columns.tolist()}"
                         )
+                        capture_exception(
+                            Exception(
+                                f"CSV must contain columns: {', '.join(expected_cols)}. Found: {loaded_script_df.columns.tolist()}"
+                            )
+                        )
                         current_script_df = filament_df_state.value
                         if (
                             current_script_df is not None
@@ -411,6 +415,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     )
                 except Exception as e:
                     gr.Error(f"Error loading CSV: {e}")
+                    capture_exception(e)
                     current_script_df = filament_df_state.value
                     if current_script_df is not None and not current_script_df.empty:
                         return current_script_df.rename(
@@ -437,6 +442,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     gr.Error(
                         f"Cannot save. DataFrame missing required script columns. Expected: {required_cols}. Found: {df_to_save.columns.tolist()}"
                     )
+                    capture_exception(Exception(f"Missing columns: {df_to_save.columns.tolist()}"))
                     return None
                 temp_dir = os.path.join(GRADIO_OUTPUT_BASE_DIR, "_temp_downloads")
                 os.makedirs(temp_dir, exist_ok=True)
@@ -580,6 +586,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             not input_image_path
         ):  # Covers None and empty string from gr.Image(type="filepath")
             gr.Error("Input Image is required! Please upload an image.")
+            capture_exception(Exception("Input Image is required!"))
             return create_empty_error_outputs("Error: Input Image is required!")
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + str(uuid.uuid4())
@@ -593,6 +600,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             or current_filaments_df_state_val.empty
         ):
             gr.Error("Filament table is empty. Please add filaments.")
+            capture_exception(
+                Exception("Filament table is empty. Please add filaments.")
+            )
             return create_empty_error_outputs("Error: Filament table is empty.")
 
         temp_filament_csv = os.path.join(run_output_dir_val, "materials.csv")
@@ -604,6 +614,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 f"Error: Filament data is missing columns: {', '.join(missing_cols)}."
             )
             gr.Error(err_msg)
+            capture_exception(
+                Exception(f"Filament data is missing columns: {', '.join(missing_cols)}.")
+            )
             return create_empty_error_outputs(err_msg)
         try:
             df_to_save.to_csv(temp_filament_csv, index=False)
@@ -678,7 +691,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         )
 
         yield create_empty_error_outputs(log_output)  # clear UI and show header
-
+        sentry_sdk.capture_message(
+            f"Autoforge process started with command: {' '.join(command)}"
+        )
         process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
@@ -757,7 +772,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
         return_code = process.wait()
         if return_code != 0:
-            err = RuntimeError(f"Autoforge exited with code {return_code}")
+            err = RuntimeError(f"Autoforge exited with code {return_code} \n {log_output}")
             capture_exception(err)  # send to Sentry
             raise err  # also fail the Gradio call
         log_output += (
