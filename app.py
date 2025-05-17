@@ -25,6 +25,8 @@ else:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+sentry_sdk.capture_message("🎉 Sentry is wired up!")
+
 import gradio as gr
 import pandas as pd
 import os
