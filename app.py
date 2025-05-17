@@ -33,6 +33,24 @@ else:
 
 sentry_sdk.capture_message("🎉 Sentry is wired up!")
 
+import gradio, functools
+from sentry_sdk import capture_exception, flush
+
+orig_run_sync = gradio.utils.run_sync  # Gradio 4.x helper
+
+def sentry_run_sync(fn):
+    @functools.wraps(fn)
+    def _wrapped(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:
+            capture_exception(exc)
+            flush(timeout=2)
+            raise
+    return _wrapped
+
+gradio.utils.run_sync = sentry_run_sync  # global patch
+
 
 import gradio as gr
 import pandas as pd
@@ -107,6 +125,15 @@ def rgba_to_hex(col: str) -> str:
     r, g, b = (int(float(x)) for x in m.groups()[:3])
     return "#{:02X}{:02X}{:02X}".format(r, g, b)
 
+def sentry_wrap(fn):
+    def _inner(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:
+            capture_exception(exc)      # send to Sentry
+            flush(timeout=2)            # make sure the event is really sent
+            raise                       # let Gradio show its own error dialog
+    return _inner
 
 # --- Helper Functions ---
 def get_script_args_info(exclude_args=None):
