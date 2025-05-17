@@ -330,7 +330,13 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     with gr.Tabs():
         with gr.TabItem("Filament Management"):
             gr.Markdown(
-                'Manage your filament list. This list will be saved as a CSV and used by the Autoforge process. \n To remove a filament simply rightclick on any of the fields and select "Delete Row"'
+                'Manage your filament list. This list will be used by the Autoforge process.'
+            )
+            gr.Markdown(
+                'You can export your Hueforge filaments under "Filaments -> Export" in the Hueforge software. Please make sure to select "CSV" instead of "JSON" during the export dialog.'
+            )
+            gr.Markdown(
+                'To remove a filament simply right-click on any of the fields and select "Delete Row"'
             )
             with gr.Row():
                 load_csv_button = gr.UploadButton(
@@ -526,8 +532,16 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             )
 
         with gr.TabItem("Run Autoforge"):
+
             accordion_params_dict = {}
             accordion_params_ordered_names = []
+
+            gr.Markdown(
+                'Here you can upload an image, adjust the parameters and run the Autoforge process. The filaments from the "Filament Management" are automatically used. After the process completes you can download the results at the bottom of the page.'
+            )
+            gr.Markdown(
+                'If you want to limit the number of colors or color swaps you can find the option under the "Autoforge Parameters" as "pruning_max_colors" and "pruning_max_swaps"'
+            )
 
             with gr.Row():
                 with gr.Column(scale=1):
@@ -547,14 +561,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                             type="filepath",
                             interactive=False,
                         )
+
             with gr.Row():
-                download_zip = gr.File(  # was visible=True
-                    label="Download all results (.zip)",
-                    interactive=True,
-                    visible=False,
-                )
-            with gr.Row():
-                with gr.Accordion("Adjust Autoforge Parameters", open=False):
+                with gr.Accordion("Autoforge Parameters", open=False):
                     args_for_accordion = get_script_args_info(
                         exclude_args=["--input_image"]
                     )
@@ -615,8 +624,15 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 show_copy_button=False,
             )
 
+            with gr.Row():
+                download_zip = gr.File(  # was visible=True
+                    label="Download all results (.zip)",
+                    interactive=True,
+                    visible=False,
+                )
+
     # --- Backend Function for Running the Script ---
-    @spaces.GPU
+    @spaces.GPU(duration=120)
     def execute_autoforge_script(
         current_filaments_df_state_val, input_image, *accordion_param_values
     ):
