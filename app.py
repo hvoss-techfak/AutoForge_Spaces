@@ -778,6 +778,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         from queue import Queue, Empty
 
         log_file = os.path.join(run_output_dir_val, "autoforge_live.log")
+        open(log_file, "w", encoding="utf-8").close()
 
         cmd_str = " ".join(command)
         sentry_sdk.capture_event(
