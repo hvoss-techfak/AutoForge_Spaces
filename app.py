@@ -151,7 +151,7 @@ def get_script_args_info(exclude_args=None):
         {
             "name": "--iterations",
             "type": "number",
-            "default": 1000,
+            "default": 2000,
             "help": "Number of optimization iterations",
         },
         {
@@ -277,7 +277,7 @@ def get_script_args_info(exclude_args=None):
         {
             "name": "--num_init_rounds",
             "type": "number",
-            "default": 32,
+            "default": 64,
             "precision": 0,
             "help": "Number of rounds to choose the starting height map from.",
         },
