@@ -831,7 +831,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     with open(self.log_path, "a", encoding="utf-8") as lf:
                         lf.write(
                             "\nERROR: {}. This usually means the space has no free GPU "
-                            "minutes left right now. Please clone the docker container, run it locally or wait for a bit.\n".format(e)
+                            "minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n".format(e)
                         )
                     # a non-zero code tells the outer loop something went wrong
                     self.returncode = -1
@@ -997,4 +997,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Could not write default {DEFAULT_MATERIALS_CSV}: {e}")
     print("To run the UI, execute: python app.py")  # Corrected to python app.py
-    demo.queue(default_concurrency_limit=1).launch(share=False)
+    demo.queue(default_concurrency_limit=8).launch(share=False)
