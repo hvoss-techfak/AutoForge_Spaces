@@ -1,4 +1,4 @@
-autoforge==1.7.3
+autoforge==1.7.4
 sentry-sdk[huggingface_hub]
 sentry-sdk[fastapi]
 wandb
