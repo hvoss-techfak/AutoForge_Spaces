@@ -10,7 +10,7 @@ from sentry_sdk import capture_exception
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
-#import spaces
+import spaces
 dsn = os.getenv("SENTRY_DSN")
 if not dsn:
     print("WARNING: SENTRY_DSN not set – Sentry disabled")
@@ -321,7 +321,7 @@ if os.path.exists(DEFAULT_MATERIALS_CSV):
 else:
     initial_df.to_csv(DEFAULT_MATERIALS_CSV, index=False)
 
-#@spaces.GPU(duration=90)                       # GPU reserved only for this call
+@spaces.GPU(duration=90)                       # GPU reserved only for this call
 def run_autoforge_process(cmd, log_path):
     """
     Launch the external `autoforge` CLI.
