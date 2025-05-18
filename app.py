@@ -15,6 +15,7 @@ dsn = os.getenv("SENTRY_DSN")
 if not dsn:
     print("WARNING: SENTRY_DSN not set – Sentry disabled")
 else:
+
     sentry_sdk.init(
         dsn=dsn,
         traces_sample_rate=0.1,
