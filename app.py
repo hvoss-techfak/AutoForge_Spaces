@@ -966,4 +966,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Could not write default {DEFAULT_MATERIALS_CSV}: {e}")
     print("To run the UI, execute: python app.py")  # Corrected to python app.py
-    demo.queue(default_concurrency_limit=1).launch(share=False)
+    demo.queue(default_concurrency_limit=2).launch(share=False)
