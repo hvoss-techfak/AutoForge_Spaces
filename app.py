@@ -6,7 +6,7 @@ import zipfile
 
 import sentry_sdk
 import wandb
-from sentry_sdk import capture_exception, push_scope, capture_message
+from sentry_sdk import capture_exception
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -47,8 +47,9 @@ else:
 
 
 
-import gradio, functools
-from sentry_sdk import capture_exception, flush
+import gradio
+import functools
+from sentry_sdk import flush
 
 orig_call_fn = gradio.blocks.Blocks.call_function  # present in all 3.x & 4.x
 
@@ -70,7 +71,6 @@ import pandas as pd
 import os
 import subprocess
 import time
-import shutil
 import sys
 from datetime import datetime
 import re
@@ -328,7 +328,6 @@ def run_autoforge_process(cmd, log_path):
     All stdout/stderr lines are appended (line-buffered) to *log_path*.
     Returns the CLI's exit-code.
     """
-    import subprocess, io, os, sys
 
     with open(log_path, "w", buffering=1, encoding="utf-8") as log_f:  # line-buffered
         proc = subprocess.Popen(
@@ -765,7 +764,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
         # 3. Run script
         log_output = [
-            f"Starting Autoforge process at ",
+            "Starting Autoforge process at ",
             f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
             f"Output directory: {run_output_dir_val}\n",
             f"Command: {' '.join(command)}\n\n",
@@ -795,8 +794,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             return src  # → refresh image
 
         # ---- run Autoforge on the GPU in a helper thread ------------------
-        from threading import Thread
-        from queue import Queue, Empty
 
         log_file = os.path.join(run_output_dir_val, "autoforge_live.log")
         open(log_file, "w", encoding="utf-8").close()
