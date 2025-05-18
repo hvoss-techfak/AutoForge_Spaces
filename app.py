@@ -865,6 +865,20 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             time.sleep(0.05)
 
         worker.join()  # make sure it’s done
+
+        # If the GPU scheduler threw, we already wrote the text into the log.
+        # Just read the tail once more so it reaches the UI textbox.
+        with open(log_file, "r", encoding="utf-8") as lf:
+            lf.seek(file_pos)
+            log_output += lf.read()
+
+        if worker.exc is not None:
+            # Do NOT raise – raising would hide the explanation behind Gradio’s generic banner.
+            return (
+                "".join(log_output),
+                None,  # no preview
+                gr.update(visible=False, interactive=False),
+            )
         return_code = worker.returncode
 
         try:
