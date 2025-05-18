@@ -1,14 +1,16 @@
+import string
 import uuid
 import os
 import logging
 import zipfile
 
 import sentry_sdk
+import wandb
 from sentry_sdk import capture_exception, push_scope, capture_message
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
-import spaces
+#import spaces
 dsn = os.getenv("SENTRY_DSN")
 if not dsn:
     print("WARNING: SENTRY_DSN not set – Sentry disabled")
@@ -35,6 +37,15 @@ else:
     )
 
 sentry_sdk.capture_message("🎉 Sentry is wired up!")
+
+USE_WANDB = "WANDB_API_KEY" in os.environ
+if USE_WANDB:
+    wandb.login(key=os.environ["WANDB_API_KEY"])
+
+else:
+    print("Warning: WANDB_API_KEY not set. Skipping wandb logging.")
+
+
 
 import gradio, functools
 from sentry_sdk import capture_exception, flush
@@ -310,7 +321,7 @@ if os.path.exists(DEFAULT_MATERIALS_CSV):
 else:
     initial_df.to_csv(DEFAULT_MATERIALS_CSV, index=False)
 
-@spaces.GPU(duration=90)                       # GPU reserved only for this call
+#@spaces.GPU(duration=90)                       # GPU reserved only for this call
 def run_autoforge_process(cmd, log_path):
     """
     Launch the external `autoforge` CLI.
@@ -663,6 +674,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     def execute_autoforge_script(
         current_filaments_df_state_val, input_image, *accordion_param_values
     ):
+
         # 0. Validate Inputs
         if input_image is None:
             gr.Error("Input Image is required! Please upload an image.")
@@ -752,12 +764,12 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
 
         # 3. Run script
-        log_output = (
-            f"Starting Autoforge process at "
-            f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"Output directory: {run_output_dir_val}\n"
-            f"Command: {' '.join(command)}\n\n"
-        )
+        log_output = [
+            f"Starting Autoforge process at ",
+            f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
+            f"Output directory: {run_output_dir_val}\n",
+            f"Command: {' '.join(command)}\n\n",
+        ]
 
         yield create_empty_error_outputs(log_output)  # clear UI and show header
 
@@ -830,7 +842,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             if now - last_push >= 1.0:  # one-second UI tick
                 current_preview = _maybe_new_preview()
                 yield (
-                    log_output,
+                    "".join(log_output),
                     current_preview,
                     gr.update(),  # placeholder for download widget
                 )
@@ -880,22 +892,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         if out_png is None:
             log_output += "\nWarning: final_model.png not found in output."
 
-        if os.path.exists(script_input_image_path):
-            sentry_sdk.add_attachment(
-                path=script_input_image_path,  # file on disk
-                filename="input_image.png",  # how it shows up in Sentry
-                content_type="image/png",
-            )
-        if out_png:
-            try:
-                sentry_sdk.add_attachment(
-                    path=out_png,  # file on disk
-                    filename="final_image.png",  # how it shows up in Sentry
-                    content_type="image/png",
-                )
-            except Exception as e:  # unreadable or too large
-                capture_exception(e)
-
         sentry_sdk.capture_event(  # moved inside the same scope
             {
                 "message": "Autoforge process finished",
@@ -905,8 +901,45 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             }
         )
 
+        if USE_WANDB:
+            run = None
+            try:
+                run = wandb.init(
+                    project="autoforge",
+                    name=f"run_{timestamp}",
+                    notes="Autoforge Web UI run",
+                    tags=["autoforge", "gradio"],
+                )
+                wlogs= {"input_image": wandb.Image(script_input_image_path),}
+                if out_png:
+                    wlogs["output_image"] = wandb.Image(out_png)
+
+                material_csv = pd.read_csv(temp_filament_csv)
+                table = wandb.Table(dataframe=material_csv)
+                wlogs["materials"] = table
+                #log log_output as pandas table
+                from wandb import Html
+                log_text = "".join(log_output).replace("\r", "\n")
+
+                def clean_log_strict(text: str) -> str:
+                    # Keep only printable characters + newline + tab
+                    allowed = set(string.printable) | {"\n", "\t"}
+                    return "".join(ch for ch in text if ch in allowed)
+
+                log_text_cleaned = clean_log_strict(log_text)
+                wlogs["log"] = Html(f"<pre>{log_text_cleaned}</pre>")
+
+
+                wandb.log(wlogs)
+            except Exception as e:
+                #we don't want wandb errors logged in sentry
+                print(e)
+            finally:
+                if run is not None:
+                    run.finish()
+
         yield (
-            log_output,  # progress_output
+            "".join(log_output),  # progress_output
             out_png,  # final_image_preview (same as before)
             gr.update(  # download_results
                 value=files_to_offer,
@@ -928,6 +961,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
 css = """ #run_button_full_width { width: 100%; } """
 if __name__ == "__main__":
+
     if not os.path.exists(DEFAULT_MATERIALS_CSV):
         print(f"Creating default filament file: {DEFAULT_MATERIALS_CSV}")
         try:

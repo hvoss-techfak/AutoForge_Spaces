@@ -1,3 +1,4 @@
 autoforge==1.7.3
 sentry-sdk[huggingface_hub]
 sentry-sdk[fastapi]
+wandb
