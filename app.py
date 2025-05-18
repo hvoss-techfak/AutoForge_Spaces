@@ -10,7 +10,7 @@ from sentry_sdk import capture_exception
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
-import spaces
+#import spaces
 dsn = os.getenv("SENTRY_DSN")
 if not dsn:
     print("WARNING: SENTRY_DSN not set – Sentry disabled")
@@ -321,7 +321,7 @@ if os.path.exists(DEFAULT_MATERIALS_CSV):
 else:
     initial_df.to_csv(DEFAULT_MATERIALS_CSV, index=False)
 
-@spaces.GPU(duration=90)                       # GPU reserved only for this call
+#@spaces.GPU(duration=90)                       # GPU reserved only for this call
 def run_autoforge_process(cmd, log_path):
     """
     Launch the external `autoforge` CLI.
@@ -576,7 +576,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 'If you want to limit the number of colors or color swaps you can find the option under the "Autoforge Parameters" as "pruning_max_colors" and "pruning_max_swaps"'
             )
             gr.Markdown(
-                'Please note that huggingface enforces a maximum execution time of one minute. Depending on your configuration (especially iteration count) it is possible to exceed this time limit. In that case you will see a "GPU Task aborted" error.'
+                'Please note that huggingface enforces a maximum execution time of one minute. Depending on your configuration (especially iteration count) it is possible to exceed this time limit. In that case you will see a "GPU Task aborted" error or simply "Error".'
                 ' If you need more time, take a look at the [Autoforge Github Page](https://github.com/hvoss-techfak/AutoForge) to see how you can run the program locally, or pull the docker container for this project (upper right corner -> three dots -> "run locally")'
             )
             gr.Markdown(
@@ -969,4 +969,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Could not write default {DEFAULT_MATERIALS_CSV}: {e}")
     print("To run the UI, execute: python app.py")  # Corrected to python app.py
-    demo.queue(default_concurrency_limit=4).launch(share=False)
+    demo.queue().launch(share=False)
