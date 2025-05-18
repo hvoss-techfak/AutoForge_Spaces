@@ -579,6 +579,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 'Please note that huggingface enforces a maximum execution time of one minute. Depending on your configuration (especially iteration count) it is possible to exceed this time limit. In that case you will see a "GPU Task aborted" error.'
                 ' If you need more time, take a look at the [Autoforge Github Page](https://github.com/hvoss-techfak/AutoForge) to see how you can run the program locally, or pull the docker container for this project (upper right corner -> three dots -> "run locally")'
             )
+            gr.Markdown(
+                'Hint: If you want to improve the quality of the output, try increasing "iterations" to 4000, and "num_init_rounds" to 256, but be warned that this can lead to out-of-time errors due to the time restrictions mentioned above.'
+            )
 
             with gr.Row():
                 with gr.Column(scale=1):
