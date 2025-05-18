@@ -872,13 +872,13 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             lf.seek(file_pos)
             log_output += lf.read()
 
-        if worker.exc is not None:
-            # Do NOT raise – raising would hide the explanation behind Gradio’s generic banner.
-            return (
-                "".join(log_output),
-                None,  # no preview
-                gr.update(visible=False, interactive=False),
-            )
+        # if worker.exc is not None:
+        #     # Do NOT raise – raising would hide the explanation behind Gradio’s generic banner.
+        #     return (
+        #         "".join(log_output),
+        #         None,  # no preview
+        #         gr.update(visible=False, interactive=False),
+        #     )
         return_code = worker.returncode
 
         try:
