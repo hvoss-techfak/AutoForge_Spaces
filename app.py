@@ -66,7 +66,6 @@ async def sentry_call_fn(self, *args, **kwargs):
 gradio.blocks.Blocks.call_function = sentry_call_fn
 
 
-
 import gradio as gr
 import pandas as pd
 import os
@@ -89,6 +88,19 @@ DISPLAY_COL_MAP = {
     " TD": "TD",
     " Color": "Color (Hex)",
 }
+
+
+def _check_quota(required_sec: int):
+    """
+    Check if the user has enough ZeroGPU quota remaining.
+    Raises RuntimeError if not enough.
+    """
+    remaining = int(os.getenv("ZEROGPU_REMAINING", "0"))
+    if remaining < required_sec:
+        raise RuntimeError(
+            f"Insufficient ZeroGPU quota: need {required_sec}s but only {remaining}s left.\n"
+            "Please log in to Hugging Face or wait a few minutes for quota to recharge."
+        )
 
 
 def ensure_required_cols(df, *, in_display_space):
@@ -329,7 +341,8 @@ def run_autoforge_process(cmd, log_path):
     All stdout/stderr lines are appended (line-buffered) to *log_path*.
     Returns the CLI's exit-code.
     """
-
+    _check_quota(90)
+    
     with open(log_path, "w", buffering=1, encoding="utf-8") as log_f:  # line-buffered
         proc = subprocess.Popen(
             cmd,
@@ -840,35 +853,40 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     # a non-zero code tells the outer loop something went wrong
                     self.returncode = -1
 
-
-        worker = Worker(command, log_file)
-        worker.start()
-
-        preview_mtime = 0
-        last_push = 0
-        file_pos = 0  # how far we've read
-
-        while worker.is_alive() or file_pos < os.path.getsize(log_file):
-            # read any new console text
-            with open(log_file, "r", encoding="utf-8") as lf:
-                lf.seek(file_pos)
-                new_txt = lf.read()
-                file_pos = lf.tell()
-                log_output += new_txt
-
-            now = time.time()
-            if now - last_push >= 1.0:  # one-second UI tick
-                current_preview = _maybe_new_preview()
-                yield (
-                    "".join(log_output),
-                    current_preview,
-                    gr.update(),  # placeholder for download widget
-                )
-                last_push = now
-
-            time.sleep(0.05)
-
-        worker.join()  # make sure it’s done
+        try:
+            worker = Worker(command, log_file)
+            worker.start()
+    
+            preview_mtime = 0
+            last_push = 0
+            file_pos = 0  # how far we've read
+    
+            while worker.is_alive() or file_pos < os.path.getsize(log_file):
+                # read any new console text
+                with open(log_file, "r", encoding="utf-8") as lf:
+                    lf.seek(file_pos)
+                    new_txt = lf.read()
+                    file_pos = lf.tell()
+                    log_output += new_txt
+    
+                now = time.time()
+                if now - last_push >= 1.0:  # one-second UI tick
+                    current_preview = _maybe_new_preview()
+                    yield (
+                        "".join(log_output),
+                        current_preview,
+                        gr.update(),  # placeholder for download widget
+                    )
+                    last_push = now
+    
+                time.sleep(0.05)
+    
+            worker.join()  # make sure it’s done
+        except RuntimeError as e:
+            # Show toast to user
+            gr.Error(str(e))  # <-- this is the toast
+            capture_exception(e)
+            return create_empty_error_outputs(str(e))
 
         # If the GPU scheduler threw, we already wrote the text into the log.
         # Just read the tail once more so it reaches the UI textbox.
@@ -876,13 +894,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             lf.seek(file_pos)
             log_output += lf.read()
 
-        # if worker.exc is not None:
-        #     # Do NOT raise – raising would hide the explanation behind Gradio’s generic banner.
-        #     return (
-        #         "".join(log_output),
-        #         None,  # no preview
-        #         gr.update(visible=False, interactive=False),
-        #     )
         return_code = worker.returncode
 
         try:
