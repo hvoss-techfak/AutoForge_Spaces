@@ -6,6 +6,7 @@ import zipfile
 import importlib
 import sentry_sdk
 import wandb
+from contextlib import redirect_stdout, redirect_stderr
 from sentry_sdk import capture_exception
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
