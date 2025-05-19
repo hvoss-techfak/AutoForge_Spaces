@@ -684,7 +684,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     def execute_autoforge_script(
         current_filaments_df_state_val, input_image, *accordion_param_values
     ):
-         import joblib
+        import joblib
         from joblib import parallel_backend
         parallel_backend("threading").install()
 
