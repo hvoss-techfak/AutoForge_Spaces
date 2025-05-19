@@ -46,6 +46,7 @@ if USE_WANDB:
 else:
     print("Warning: WANDB_API_KEY not set. Skipping wandb logging.")
 
+print(os.environ)
 
 
 import gradio
