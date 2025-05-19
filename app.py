@@ -333,7 +333,7 @@ if os.path.exists(DEFAULT_MATERIALS_CSV):
 else:
     initial_df.to_csv(DEFAULT_MATERIALS_CSV, index=False)
 
-@spaces.GPU(duration=90)
+
 def run_autoforge_process(cmd, log_path):
     """Run AutoForge in-process and stream its console output to *log_path*."""
     from joblib import parallel_backend
@@ -681,6 +681,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 )
 
     # --- Backend Function for Running the Script ---
+    @spaces.GPU(duration=120)
     def execute_autoforge_script(
         current_filaments_df_state_val, input_image, *accordion_param_values
     ):
