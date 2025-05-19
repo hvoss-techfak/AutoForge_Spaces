@@ -698,6 +698,20 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         current_filaments_df_state_val, input_image, *accordion_param_values
     ):
 
+        try:
+            _check_quota(90)                       # same value as @spaces.GPU
+        except RuntimeError as exc:                # failed → show the full text
+            msg = exc_text(exc)
+            log_output += f"\nERROR: {msg}\n"
+            log_output += "\nThis usually means that your account, your IP adress or the space has no free GPU minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n"
+            gr.Error(msg)                          # red toast
+            yield (
+                "".join(log_output),
+                gr.update(),                       # keep preview unchanged
+                gr.update(),
+            )
+            return                                 # stop here, no Worker is started
+
         # 0. Validate Inputs
         if input_image is None:
             gr.Error("Input Image is required! Please upload an image.")
