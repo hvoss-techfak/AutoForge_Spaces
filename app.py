@@ -334,28 +334,24 @@ if os.path.exists(DEFAULT_MATERIALS_CSV):
 else:
     initial_df.to_csv(DEFAULT_MATERIALS_CSV, index=False)
 
-@spaces.GPU(duration=90)                       # GPU reserved only for this call
+@spaces.GPU(duration=90)
 def run_autoforge_process(cmd, log_path):
-    """
-    Launch the external `autoforge` CLI.
-    All stdout/stderr lines are appended (line-buffered) to *log_path*.
-    Returns the CLI's exit-code.
-    """
+    """Run AutoForge in-process and stream its console output to *log_path*."""
     _check_quota(90)
-    
-    with open(log_path, "w", buffering=1, encoding="utf-8") as log_f:  # line-buffered
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            universal_newlines=True,
-        )
-        for line in proc.stdout:           # live streaming to the file
-            log_f.write(line)
-        proc.wait()
-    return proc.returncode
+
+    cli_args = cmd[1:]          # skip the literal "autoforge"
+    autoforge_main = importlib.import_module("autoforge.__main__")
+
+    exit_code = 0
+    with open(log_path, "w", buffering=1, encoding="utf-8") as log_f, \
+         redirect_stdout(log_f), redirect_stderr(log_f):
+        try:
+            sys.argv = ["autoforge"] + cli_args
+            autoforge_main.main()         # runs until completion
+        except SystemExit as e:           # AutoForge calls sys.exit()
+            exit_code = e.code
+
+    return exit_code
 
 
 # Helper for creating an empty 10-tuple for error returns
