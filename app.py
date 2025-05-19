@@ -698,6 +698,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         current_filaments_df_state_val, input_image, *accordion_param_values
     ):
 
+        log_output = []
         try:
             _check_quota(90)                       # same value as @spaces.GPU
         except RuntimeError as exc:                # failed → show the full text
