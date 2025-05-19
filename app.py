@@ -89,6 +89,17 @@ DISPLAY_COL_MAP = {
     " Color": "Color (Hex)",
 }
 
+def exc_text(exc: BaseException) -> str:
+    """
+    Return the human-readable message of *exc*.
+    Falls back to the class name if the message is empty.
+    """
+    txt = str(exc).strip()
+    if txt:
+        return txt
+    if exc.args:
+        return " ".join(str(a) for a in exc.args).strip()
+    return exc.__class__.__name__
 
 def _check_quota(required_sec: int):
     """
@@ -834,8 +845,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 try:
                     self.returncode = run_autoforge_process(self.cmd, self.log_path)
                 except Exception as e:
-                    import traceback
-                    exc_str = str(e).strip()
+                    exc_str = exc_text(exc)
                     self.exc = e
                     capture_exception(e)  # still goes to Sentry
                     
