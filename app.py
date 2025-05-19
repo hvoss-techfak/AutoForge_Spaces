@@ -101,20 +101,6 @@ def exc_text(exc: BaseException) -> str:
         return " ".join(str(a) for a in exc.args).strip()
     return exc.__class__.__name__
 
-def _check_quota(required_sec: int):
-    """
-    Check if the user has enough ZeroGPU quota remaining.
-    Raises RuntimeError if not enough.
-    """
-    remaining = int(os.getenv("ZEROGPU_REMAINING", "0"))
-    print(os.environ)
-    if remaining < required_sec:
-        raise RuntimeError(
-            f"Insufficient ZeroGPU quota: need {required_sec}s but only {remaining}s left.\n"
-            "Please log in to Hugging Face or wait a few minutes for quota to recharge."
-        )
-
-
 def ensure_required_cols(df, *, in_display_space):
     """
     Return a copy of *df* with every required column present.
@@ -349,7 +335,6 @@ else:
 @spaces.GPU(duration=90)
 def run_autoforge_process(cmd, log_path):
     """Run AutoForge in-process and stream its console output to *log_path*."""
-    _check_quota(90)
 
     cli_args = cmd[1:]          # skip the literal "autoforge"
     autoforge_main = importlib.import_module("autoforge.__main__")
