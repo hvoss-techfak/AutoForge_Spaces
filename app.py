@@ -300,7 +300,7 @@ def get_script_args_info(exclude_args=None):
         {
             "name": "--num_init_rounds",
             "type": "number",
-            "default": 4,
+            "default": 32,
             "precision": 0,
             "help": "Number of rounds to choose the starting height map from.",
         },
