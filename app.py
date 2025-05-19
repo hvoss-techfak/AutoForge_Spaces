@@ -840,11 +840,11 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     with open(self.log_path, "a", encoding="utf-8") as lf:
                         lf.write(
                             "\nERROR: {}. This usually means the space has no free GPU "
-                            "minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n".format(e)
+                            "minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n".format(str(e))
                         )
                     gr.Error(
                         "ERROR: {}. This usually means the space has no free GPU "
-                        "minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n".format(e)
+                        "minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n".format(str(e))
                     )
                     # a non-zero code tells the outer loop something went wrong
                     self.returncode = -1
