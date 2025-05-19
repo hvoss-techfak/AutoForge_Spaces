@@ -835,7 +835,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                     self.returncode = run_autoforge_process(self.cmd, self.log_path)
                 except Exception as e:
                     import traceback
-                    exc_str = repr(e)
+                    exc_str = str(e).strip()
                     self.exc = e
                     capture_exception(e)  # still goes to Sentry
                     
