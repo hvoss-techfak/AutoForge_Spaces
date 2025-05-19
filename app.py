@@ -336,13 +336,13 @@ else:
 @spaces.GPU(duration=90)
 def run_autoforge_process(cmd, log_path):
     """Run AutoForge in-process and stream its console output to *log_path*."""
-
+    from joblib import parallel_backend
     cli_args = cmd[1:]          # skip the literal "autoforge"
     autoforge_main = importlib.import_module("autoforge.__main__")
 
     exit_code = 0
     with open(log_path, "w", buffering=1, encoding="utf-8") as log_f, \
-         redirect_stdout(log_f), redirect_stderr(log_f):
+         redirect_stdout(log_f), redirect_stderr(log_f), parallel_backend("threading", n_jobs=-1):
         try:
             sys.argv = ["autoforge"] + cli_args
             autoforge_main.main()         # runs until completion
@@ -684,10 +684,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     def execute_autoforge_script(
         current_filaments_df_state_val, input_image, *accordion_param_values
     ):
-        import joblib
-        from joblib import parallel_backend
-        parallel_backend("threading").install()
-
+        
         log_output = []
 
         # 0. Validate Inputs
