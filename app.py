@@ -107,6 +107,7 @@ def _check_quota(required_sec: int):
     Raises RuntimeError if not enough.
     """
     remaining = int(os.getenv("ZEROGPU_REMAINING", "0"))
+    print(os.env)
     if remaining < required_sec:
         raise RuntimeError(
             f"Insufficient ZeroGPU quota: need {required_sec}s but only {remaining}s left.\n"
@@ -699,19 +700,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     ):
 
         log_output = []
-        try:
-            _check_quota(90)                       # same value as @spaces.GPU
-        except RuntimeError as exc:                # failed → show the full text
-            msg = exc_text(exc)
-            log_output += f"\nERROR: {msg}\n"
-            log_output += "\nThis usually means that your account, your IP adress or the space has no free GPU minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n"
-            gr.Error(msg)                          # red toast
-            yield (
-                "".join(log_output),
-                gr.update(),                       # keep preview unchanged
-                gr.update(),
-            )
-            return                                 # stop here, no Worker is started
 
         # 0. Validate Inputs
         if input_image is None:
