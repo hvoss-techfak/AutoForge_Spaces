@@ -107,7 +107,7 @@ def _check_quota(required_sec: int):
     Raises RuntimeError if not enough.
     """
     remaining = int(os.getenv("ZEROGPU_REMAINING", "0"))
-    print(os.env)
+    print(os.environ)
     if remaining < required_sec:
         raise RuntimeError(
             f"Insufficient ZeroGPU quota: need {required_sec}s but only {remaining}s left.\n"
