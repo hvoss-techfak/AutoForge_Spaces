@@ -884,6 +884,17 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             log_output += repr(e)
             gr.Error(str(e))  # <-- this is the toast
             capture_exception(e)
+
+            with open(log_file, "r", encoding="utf-8") as lf:
+                    lf.seek(file_pos)
+                    new_txt = lf.read()
+                    file_pos = lf.tell()
+                    log_output += new_txt
+            yield (
+                "".join(log_output),
+                current_preview,
+                gr.update(),  # placeholder for download widget
+            )
             return create_empty_error_outputs(str(e))
 
         if getattr(worker, "exc", None) is not None:
