@@ -880,6 +880,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             worker.join()  # make sure it’s done
         except RuntimeError as e:
             # Show toast to user
+            log_output += str(e)
             gr.Error(str(e))  # <-- this is the toast
             capture_exception(e)
             return create_empty_error_outputs(str(e))
