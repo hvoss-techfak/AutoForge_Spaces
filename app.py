@@ -836,15 +836,17 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 except Exception as e:
                     self.exc = e
                     capture_exception(e)  # still goes to Sentry
+                    import traceback
+                    exc_str = "".join(traceback.format_exception_only(e)).strip()
                     # make the error visible in the UI console
                     with open(self.log_path, "a", encoding="utf-8") as lf:
                         lf.write(
                             "\nERROR: {}. This usually means that you or the space has no free GPU "
-                            "minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n".format(str(e))
+                            "minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n".format(exc_str)
                         )
                     gr.Error(
                         "ERROR: {}. This usually means that you ore the the space has no free GPU "
-                        "minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n".format(str(e))
+                        "minutes left, or the process took too long due to too many filaments or changed parameters. Please clone the docker container, run it locally or wait for a bit.\n".format(exc_str)
                     )
                     # a non-zero code tells the outer loop something went wrong
                     self.returncode = -1
