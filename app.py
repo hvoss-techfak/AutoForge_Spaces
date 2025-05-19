@@ -884,6 +884,18 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             capture_exception(e)
             return create_empty_error_outputs(str(e))
 
+        if getattr(worker, "exc", None) is not None:
+            # worker.exc will be the ZeroGPU / scheduler error
+            err_msg = f"GPU run failed: {worker.exc}"
+            log_output += f"\n{err_msg}\n"
+            gr.Error(err_msg)           # toast
+            yield (                     # push the message into the textbox
+                "".join(log_output),
+                _maybe_new_preview(),
+                gr.update(),
+            )
+            return                      # stop the coroutine cleanly
+
         # If the GPU scheduler threw, we already wrote the text into the log.
         # Just read the tail once more so it reaches the UI textbox.
         with open(log_file, "r", encoding="utf-8") as lf:
@@ -901,11 +913,19 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         except Exception as e:
             capture_exception(e)
 
-        if return_code != 0:
-
-            err = RuntimeError(f"Autoforge exited with code {return_code} \n {log_output}")
-            capture_exception(err)  # send to Sentry
-            raise err  # also fail the Gradio call
+        if worker.returncode != 0:
+            err_msg = (
+                f"Autoforge exited with code {worker.returncode}\n"
+                "See the console output above for details."
+            )
+            log_output += f"\n{err_msg}\n"
+            gr.Error(err_msg)
+            yield (
+                "".join(log_output),
+                _maybe_new_preview(),
+                gr.update(),
+            )
+            return
         log_output += (
             "\nAutoforge process completed successfully!"
             if return_code == 0
