@@ -379,6 +379,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             gr.Markdown(
                 'To remove a filament simply right-click on any of the fields and select "Delete Row"'
             )
+            gr.Markdown(
+                'Hint: If you have an AMS 3d printer try giving it your entire filament library and then set "pruning_max_colors" under "Autoforge Parameters" in the second tab to your number of AMS slots.'
+                'Autoforge will automatically select the best matching colors for your image.'
+            )
             with gr.Row():
                 load_csv_button = gr.UploadButton(
                     "Load Filaments CSV", file_types=[".csv"]
