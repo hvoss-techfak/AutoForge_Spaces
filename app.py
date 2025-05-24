@@ -1,3 +1,4 @@
+import json
 import string
 import uuid
 import os
@@ -360,6 +361,52 @@ def create_empty_error_outputs(log_message=""):
         gr.update(visible=False, interactive=False),  # ### ZIP: download_zip
     )
 
+def load_filaments_from_json_upload(file_obj):
+    """
+    Called when the user picks a .json file.
+    Accepts both the plain Hueforge export and the wrapped
+    {"Filaments": [...]} variant.
+    """
+    # Fall back to whatever is already in the state when nothing selected
+    if file_obj is None:
+        current_script_df = filament_df_state.value
+        if current_script_df is not None and not current_script_df.empty:
+            return current_script_df.rename(
+                columns={" Name": "Name", " TD": "TD", " Color": "Color (Hex)"}
+            )
+        return initial_df.copy().rename(
+            columns={" Name": "Name", " TD": "TD", " Color": "Color (Hex)"}
+        )
+
+    try:
+        with open(file_obj.name, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Hueforge sometimes nests the list under the “Filaments” key
+        if isinstance(data, dict) and "Filaments" in data:
+            data = data["Filaments"]
+
+        df_loaded = pd.DataFrame(data)
+        df_loaded = ensure_required_cols(df_loaded, in_display_space=False)
+
+        expected_cols = ["Brand", " Name", " TD", " Color"]
+        if not all(col in df_loaded.columns for col in expected_cols):
+            gr.Error(
+                f"JSON must contain keys/columns: {', '.join(expected_cols)}. "
+                f"Found: {df_loaded.columns.tolist()}"
+            )
+            return filament_table.value      # keep the table unchanged
+
+        filament_df_state.value = df_loaded.copy()
+
+        return df_loaded.rename(
+            columns={" Name": "Name", " TD": "TD", " Color": "Color (Hex)"}
+        )
+
+    except Exception as e:
+        gr.Error(f"Error loading JSON: {e}")
+        return filament_table.value          # keep current table on failure
+
 
 # --- Gradio UI Definition ---
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
@@ -381,11 +428,14 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             )
             gr.Markdown(
                 'Hint: If you have an AMS 3d printer try giving it your entire filament library and then set "pruning_max_colors" under "Autoforge Parameters" in the second tab to your number of AMS slots.'
-                'Autoforge will automatically select the best matching colors for your image.'
+                ' Autoforge will automatically select the best matching colors for your image.'
             )
             with gr.Row():
                 load_csv_button = gr.UploadButton(
                     "Load Filaments CSV", file_types=[".csv"]
+                )
+                load_json_button = gr.UploadButton(  # NEW
+                    "Load Filaments JSON", file_types=[".json"]
                 )
                 save_csv_button = gr.Button("Save Current Filaments to CSV")
             filament_table = gr.DataFrame(
@@ -568,6 +618,11 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             load_csv_button.upload(
                 load_filaments_from_csv_upload,
                 inputs=[load_csv_button],
+                outputs=[filament_table],
+            )
+            load_json_button.upload(
+                load_filaments_from_json_upload,
+                inputs=[load_json_button],
                 outputs=[filament_table],
             )
             save_csv_button.click(
