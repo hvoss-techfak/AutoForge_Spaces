@@ -392,7 +392,7 @@ def load_filaments_from_json_upload(file_obj):
         # still carry a leading blank
         rename_map = {
             "Name":  " Name",
-            "TD":    " TD",
+            "Transmissivity":    " TD",
             "Color": " Color",
         }
         df_loaded.rename(
@@ -441,6 +441,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             )
             gr.Markdown(
                 'If you have Hueforge, you can export your filaments under "Filaments -> Export" in the Hueforge software. Please make sure to select "CSV" instead of "JSON" during the export dialog.'
+            )
+            gr.Markdown(
+                'If you want to load your personal library of Hueforge filaments, you can also simply paste this path into your explorer address bar: %APPDATA%\HueForge\Filaments\ and import your "personal_library.json" using the "Load Filaments Json" button.'
             )
             gr.Markdown(
                 'To remove a filament simply right-click on any of the fields and select "Delete Row"'
