@@ -363,11 +363,10 @@ def create_empty_error_outputs(log_message=""):
 
 def load_filaments_from_json_upload(file_obj):
     """
-    Called when the user picks a .json file.
-    Accepts both the plain Hueforge export and the wrapped
-    {"Filaments": [...]} variant.
+    Called when the user picks a .json file and converts it to the
+    script-style DataFrame expected by the rest of the app.
     """
-    # Fall back to whatever is already in the state when nothing selected
+    # ── early-out when nothing was chosen ──────────────────────────────
     if file_obj is None:
         current_script_df = filament_df_state.value
         if current_script_df is not None and not current_script_df.empty:
@@ -381,12 +380,27 @@ def load_filaments_from_json_upload(file_obj):
     try:
         with open(file_obj.name, "r", encoding="utf-8") as f:
             data = json.load(f)
-
-        # Hueforge sometimes nests the list under the “Filaments” key
         if isinstance(data, dict) and "Filaments" in data:
             data = data["Filaments"]
 
         df_loaded = pd.DataFrame(data)
+
+        # strip whitespace around every header first
+        df_loaded.columns = [c.strip() for c in df_loaded.columns]
+
+        # convert Hue-forge “nice” headers to the script headers that
+        # still carry a leading blank
+        rename_map = {
+            "Name":  " Name",
+            "TD":    " TD",
+            "Color": " Color",
+        }
+        df_loaded.rename(
+            columns={k: v for k, v in rename_map.items() if k in df_loaded.columns},
+            inplace=True,
+        )
+
+        # now make sure the usual helpers see exactly the expected headers
         df_loaded = ensure_required_cols(df_loaded, in_display_space=False)
 
         expected_cols = ["Brand", " Name", " TD", " Color"]
