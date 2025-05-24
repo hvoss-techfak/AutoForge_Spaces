@@ -400,6 +400,11 @@ def load_filaments_from_json_upload(file_obj):
             inplace=True,
         )
 
+        if " TD" in df_loaded.columns:
+            df_loaded[" TD"] = pd.to_numeric(df_loaded[" TD"], errors="coerce").fillna(
+                0.0
+            )
+
         # now make sure the usual helpers see exactly the expected headers
         df_loaded = ensure_required_cols(df_loaded, in_display_space=False)
 
